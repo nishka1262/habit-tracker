@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Habit Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --pink:#F4A6C1;
+    --pink-light:#FDEEF3;
+    --pink-mid:#F8D3E1;
+    --white:#FFFFFF;
+    --text:#4a3b42;
+    --text-soft:#a98b96;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{
+    background:var(--pink-light);
+    color:var(--text);
+    font-family:'Quicksand',sans-serif;
+    min-height:100%;
+    padding:36px 18px 60px;
+  }
+  .wrap{max-width:640px;margin:0 auto;}
+
+  h1{
+    font-size:1.9rem;
+    font-weight:700;
+    margin:0 0 4px;
+    color:var(--text);
+  }
+  .sub{color:var(--text-soft);font-size:0.95rem;margin:0 0 28px;}
+
+  .add-row{display:flex;gap:8px;margin-bottom:26px;}
+  .add-row input{
+    flex:1;
+    padding:12px 16px;
+    border:none;
+    border-radius:999px;
+    background:var(--white);
+    color:var(--text);
+    font-family:'Quicksand',sans-serif;
+    font-size:0.95rem;
+    font-weight:600;
+  }
+  .add-row input::placeholder{color:var(--text-soft);font-weight:500;}
+  .add-row input:focus{outline:2px solid var(--pink);}
+  .add-row button{
+    padding:12px 22px;
+    background:var(--pink);
+    color:var(--white);
+    border:none;
+    border-radius:999px;
+    font-family:'Quicksand',sans-serif;
+    font-weight:700;
+    font-size:0.95rem;
+    cursor:pointer;
+  }
+  .add-row button:hover{background:#ef8bae;}
+
+  .card{
+    background:var(--white);
+    border-radius:20px;
+    padding:18px 20px;
+    margin-bottom:14px;
+  }
+  .card-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:14px;
+  }
+  .card-top h3{
+    margin:0;
+    font-size:1.05rem;
+    font-weight:700;
+  }
+  .streak{
+    font-size:0.82rem;
+    color:var(--pink);
+    font-weight:600;
+  }
+  .remove-btn{
+    background:none;border:none;
+    color:var(--text-soft);
+    font-size:1rem;
+    cursor:pointer;
+    padding:2px 6px;
+  }
+  .remove-btn:hover{color:var(--pink);}
+
+  .days{display:flex;justify-content:space-between;gap:6px;}
+  .day{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;}
+  .day span{font-size:0.68rem;color:var(--text-soft);font-weight:600;}
+  .dot{
+    width:28px;height:28px;
+    border-radius:50%;
+    border:none;
+    background:var(--pink-mid);
+    cursor:pointer;
+  }
+  .dot.done{background:var(--pink);}
+  .dot:active{transform:scale(0.9);}
+
+  .empty{
+    text-align:center;
+    color:var(--text-soft);
+    font-size:0.95rem;
+    padding:40px 20px;
+    background:var(--white);
+    border-radius:20px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Habit Tracker</h1>
+  <p class="sub">Add a habit, tap a dot for each day you did it.</p>
+
+  <div class="add-row">
+    <input type="text" id="newHabit" placeholder="Add a habit…" maxlength="40">
+    <button onclick="addHabit()">Add</button>
+  </div>
+
+  <div id="board"></div>
+</div>
+
+<script>
+const DAYS = ['S','M','T','W','T','F','S'];
+let habits = [];
+
+function load(){
+  try{
+    const raw = localStorage.getItem('habitTrackerPink');
+    habits = raw ? JSON.parse(raw) : defaultHabits();
+  }catch(e){
+    habits = defaultHabits();
+  }
+}
+function defaultHabits(){
+  return [
+    {name:'Drink water', days:[false,false,false,false,false,false,false]},
+    {name:'Move my body', days:[false,false,false,false,false,false,false]},
+    {name:'Read a bit', days:[false,false,false,false,false,false,false]}
+  ];
+}
+function save(){
+  try{ localStorage.setItem('habitTrackerPink', JSON.stringify(habits)); }
+  catch(e){ console.error('save failed', e); }
+}
+
+function streakCount(days){
+  let count = 0;
+  for(let i = days.length - 1; i >= 0; i--){
+    if(days[i]) count++; else break;
+  }
+  return count;
+}
+
+function render(){
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  if(habits.length === 0){
+    board.innerHTML = '<div class="empty">No habits yet — add one above.</div>';
+    return;
+  }
+  habits.forEach((h, hi) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const top = document.createElement('div');
+    top.className = 'card-top';
+    const title = document.createElement('h3');
+    title.textContent = h.name;
+    const streak = document.createElement('span');
+    streak.className = 'streak';
+    const s = streakCount(h.days);
+    streak.textContent = s > 0 ? `${s} day streak` : 'start today';
+    const remove = document.createElement('button');
+    remove.className = 'remove-btn';
+    remove.textContent = '✕';
+    remove.onclick = () => removeHabit(hi);
+
+    const right = document.createElement('div');
+    right.style.display = 'flex';
+    right.style.alignItems = 'center';
+    right.style.gap = '10px';
+    right.appendChild(streak);
+    right.appendChild(remove);
+
+    top.appendChild(title);
+    top.appendChild(right);
+    card.appendChild(top);
+
+    const daysRow = document.createElement('div');
+    daysRow.className = 'days';
+    h.days.forEach((done, di) => {
+      const dayWrap = document.createElement('div');
+      dayWrap.className = 'day';
+      const label = document.createElement('span');
+      label.textContent = DAYS[di];
+      const dot = document.createElement('button');
+      dot.className = 'dot' + (done ? ' done' : '');
+      dot.setAttribute('aria-label', h.name + ' ' + DAYS[di]);
+      dot.onclick = () => toggleDay(hi, di);
+      dayWrap.appendChild(label);
+      dayWrap.appendChild(dot);
+      daysRow.appendChild(dayWrap);
+    });
+    card.appendChild(daysRow);
+
+    board.appendChild(card);
+  });
+}
+
+function toggleDay(hi, di){
+  habits[hi].days[di] = !habits[hi].days[di];
+  save();
+  render();
+}
+function removeHabit(hi){
+  habits.splice(hi, 1);
+  save();
+  render();
+}
+function addHabit(){
+  const input = document.getElementById('newHabit');
+  const name = input.value.trim();
+  if(!name) return;
+  habits.push({name, days:[false,false,false,false,false,false,false]});
+  input.value = '';
+  save();
+  render();
+}
+document.getElementById('newHabit').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter') addHabit();
+});
+
+load();
+render();
+</script>
+</body>
+</html>
